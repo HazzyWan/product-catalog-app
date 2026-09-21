@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/product_list_provider.dart';
 import '../state/product_list_state.dart';
 import '../widgets/product_card.dart';
+import 'product_detail_screen.dart'; // navigates here when a product is tapped
 
 // StatefulWidget: unlike StatelessWidget, this can hold onto internal
 // values (like scroll position) that change over time.
@@ -115,8 +116,18 @@ class _ProductListScreenState extends State<ProductListScreen> {
             child: Center(child: CircularProgressIndicator()),
           );
         }
-        // Otherwise, show the actual product at this position.
-        return ProductCard(product: loaded.products[index]);
+        final product = loaded.products[index];
+        // Wraps the card so tapping it navigates to the detail screen,
+        // passing along which product's id to fetch details for.
+        return GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProductDetailScreen(productId: product.id),
+            ),
+          ),
+          child: ProductCard(product: product),
+        );
       },
     );
   }
