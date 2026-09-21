@@ -1,3 +1,4 @@
+import 'dart:async'; // Needed for Timer (debounce)
 import 'package:flutter/foundation.dart';
 import '../../data/repositories/product_repository.dart';
 import '../state/product_list_state.dart';
@@ -16,6 +17,14 @@ class ProductListProvider extends ChangeNotifier {
 
   // Tracks whether there might still be more pages to load.
   bool _hasMore = true;
+
+  // Holds a pending debounce timer, so rapid typing doesn't
+  // fire a network request on every single keystroke.
+  Timer? _debounce;
+
+  // Tracks whether current results came from a search or the
+  // normal paginated list, so loadMore() knows whether to paginate.
+  bool _isSearching = false;
 
   // Fetches the first page. Called when the screen first opens,
   // or when the user pulls to refresh.
@@ -39,13 +48,16 @@ class ProductListProvider extends ChangeNotifier {
 
   // Fetches the next page. Called when the user scrolls near the bottom.
   Future<void> loadMore() async {
-    // Only proceed if currently in a loaded state and more pages might exist.
     final current = _state;
-    if (current is! ProductListLoaded || !_hasMore || current.isLoadingMore) {
+    // Added `|| _isSearching` so pagination is skipped
+    // while search results are being shown.
+    if (current is! ProductListLoaded ||
+        !_hasMore ||
+        current.isLoadingMore ||
+        _isSearching) {
       return;
     }
 
-    // Show a small "loading more" flag without losing the current list.
     _state = ProductListLoaded(
       products: current.products,
       isLoadingMore: true,
@@ -61,8 +73,6 @@ class ProductListProvider extends ChangeNotifier {
         isLoadingMore: false,
       );
     } catch (e) {
-      // If loading more fails, keep showing the existing list rather
-      // than replacing the whole screen with an error.
       _state = ProductListLoaded(
         products: current.products,
         isLoadingMore: false,
@@ -70,5 +80,49 @@ class ProductListProvider extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  // Called every time the search box's text changes.
+  void onSearchChanged(String query) {
+    // Cancels any previously scheduled search that hasn't fired yet.
+    _debounce?.cancel();
+
+    if (query.trim().isEmpty) {
+      // If the search box is cleared, go back to the normal list.
+      _isSearching = false;
+      loadInitial();
+      return;
+    }
+
+    // Waits 500ms after the user stops typing before actually searching.
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _search(query.trim());
+    });
+  }
+
+  // Performs the actual search request.
+  Future<void> _search(String query) async {
+    _isSearching = true;
+    _state = ProductListLoading();
+    notifyListeners();
+
+    try {
+      final results = await _repository.search(query);
+      _state = results.isEmpty
+          ? ProductListEmpty()
+          : ProductListLoaded(products: results);
+    } catch (e) {
+      _state = ProductListError(e.toString());
+    }
+
+    notifyListeners();
+  }
+
+  // Cancels any pending timer when this provider is destroyed,
+  // to avoid it firing after the screen is gone.
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
 }

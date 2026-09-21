@@ -55,7 +55,20 @@ class _ProductListScreenState extends State<ProductListScreen> {
     final state = context.watch<ProductListProvider>().state;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Product Catalog')),
+      appBar: AppBar(
+        backgroundColor: Colors.indigo,
+        title: TextField(
+          style: const TextStyle(color: Colors.white, fontSize: 18),
+          cursorColor: Colors.white,
+          decoration: const InputDecoration(
+            hintText: 'Search products...',
+            hintStyle: TextStyle(color: Colors.white70),
+            border: InputBorder.none,
+          ),
+          onChanged: (query) =>
+              context.read<ProductListProvider>().onSearchChanged(query),
+        ),
+      ),
       // Wrapping the body in RefreshIndicator adds pull-to-refresh
       // (swipe down to reload) with almost no extra code.
       body: RefreshIndicator(
