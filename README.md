@@ -8,12 +8,16 @@ Flutter
 2. `flutter run` (select a connected device/emulator)
 
 ## Architecture Decisions
-- Split into three layers under `lib/data/`:
-  - `models/` — Product data class with a `fromJson` factory for parsing API responses
-  - `services/` — ProductApi handles raw HTTP calls to DummyJSON (list, detail, search)
-  - `repositories/` — ProductRepository sits between the API and UI, managing pagination
-    state (skip/limit) so screens don't need to track it themselves
-- UI layer (presentation/) will only ever call ProductRepository, never ProductApi directly
+- `data/` layer: models (Product + fromJson), services (ProductApi handles raw HTTP
+  calls), repositories (ProductRepository manages pagination state, sits between
+  API and UI)
+- `presentation/` layer: screens, widgets, providers, and a state pattern
+- State pattern: ProductListState is a sealed class with four possibilities
+  (Loading/Empty/Loaded/Error) — the UI is always in exactly one of these,
+  avoiding scattered/contradictory boolean flags
+- ProductListProvider (a ChangeNotifier) owns the current state and calls
+  ProductRepository; UI widgets watch this provider and rebuild automatically
+  when state changes
 
 ## Search Approach
 _(to fill in — client-side debounce vs API search endpoint, and why)_
