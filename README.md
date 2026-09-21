@@ -20,7 +20,11 @@ Flutter
   when state changes
 
 ## Search Approach
-_(to fill in — client-side debounce vs API search endpoint, and why)_
+Using DummyJSON's search endpoint (`/products/search?q=`), triggered with a 500ms
+debounce after the user stops typing — avoids firing a request on every keystroke.
+Note: this endpoint matches across multiple fields (title, description, category,
+tags), not just the title — so results may include items whose title alone doesn't
+contain the search term.
 
 ## TODOs / Known Issues
 _(to fill in)_
